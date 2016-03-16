@@ -13,15 +13,17 @@ namespace IoTHubDataSimulator
     public class Simulate
     {
         // Define the connection string to connect to IoT Hub
-        private const string DeviceConnectionString = "String here :)";
+        private const string DeviceConnectionString = "";
                     
-        public int sensorInstances = 10;
+        public int sensorInstances = 8;
 
         public int currentSensorInstance;
 
         public string SendJSONData;
 
-        
+
+        public int currentErrorCount;
+
 
         static void Main(string[] args)
         {
@@ -55,7 +57,7 @@ namespace IoTHubDataSimulator
             
             Timer EventTimer = new Timer();
             EventTimer.Elapsed += new ElapsedEventHandler(TimerCallback);
-            EventTimer.Interval = 60000;
+            EventTimer.Interval = 10000;
             EventTimer.Start();
 
 
@@ -68,18 +70,80 @@ namespace IoTHubDataSimulator
 
             // Display the date/time when this method got called.
             Console.WriteLine("In TimerCallback: " + DateTime.Now);
-            // Force a garbage collection to occur for this demo.
+
+            currentErrorCount += 1;
+
+
+            Console.WriteLine("Sending Date, Error Count is: " + currentErrorCount);
 
             for (int i = 1; i <= sensorInstances; i++)
             {
 
                 currentSensorInstance = i;
 
-                GenerateData(currentSensorInstance);
-                
-                // Send an event
-                SendEvent(deviceClient).Wait();
+
+                if (currentErrorCount >= 2)
+                {
+                    if (currentSensorInstance == 7)
+                    {
+
+
+                        MySensorData SensorInstance = new MySensorData();
+                        Random random = new Random();
+                        double nominalPSI = random.Next(80, 142);
+
+
+                        SensorInstance.Name = "PipeLineSensor_" + currentSensorInstance;
+                        SensorInstance.SensorType = "PL123";
+                        SensorInstance.TimeStamp = DateTime.Now.ToString();
+
+                        SensorInstance.DataValue = nominalPSI;
+                        SensorInstance.DataType = "FLOW_PSI";
+
+                        SensorInstance.UnitOfMeasure = "PSI";
+                        SensorInstance.MeasurementID = Guid.NewGuid().ToString();
+                        SensorInstance.Location = "NULL";
+
+                        SendJSONData = JsonConvert.SerializeObject(SensorInstance);
+
+
+                        Console.WriteLine("Sending ERROR!");
+                        // Send an event
+                        SendEvent(deviceClient).Wait();
+                        Console.WriteLine("Error Sent!");
+
+                    }
+                    else
+                    {
+
+                        GenerateData(currentSensorInstance);
+
+                        // Send an event
+                        SendEvent(deviceClient).Wait();
+                    }
+
+
+                }
+
+                else
+
+                {
+
+                    GenerateData(currentSensorInstance);
+
+                    // Send an event
+                    SendEvent(deviceClient).Wait();
+
+                }
+
+
             }
+
+
+
+
+
+
 
         }
 
@@ -92,7 +156,7 @@ namespace IoTHubDataSimulator
             MySensorData SensorInstance = new MySensorData();
 
             Random random = new Random();
-            double nominalPSI = random.Next(247, 251);
+            double nominalPSI = random.Next(245, 251);
             
             SensorInstance.Name = "PipeLineSensor_" + csi;
             SensorInstance.SensorType = "PL123";
@@ -106,6 +170,10 @@ namespace IoTHubDataSimulator
             SensorInstance.Location = "NULL";
 
             SendJSONData = JsonConvert.SerializeObject(SensorInstance);
+
+
+
+
 
         }
 
